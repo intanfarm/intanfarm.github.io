@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IntanFarm - Toko Produk Pertanian</title>
+
+<!-- Minimalist style, soft green -->
+<style>
+  :root {
+    --green-light: #d8f0dc;
+    --green-dark: #2f6b4a;
+    --text-dark: #1a1a1a;
+    --bg-light: #ffffff;
+    --accent: #62a86b;
+    --font: 'Helvetica Neue', Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; font-family: var(--font); color: var(--text-dark);
+    background: var(--bg-light);
+  }
+  header, footer {
+    background: var(--green-dark); color: white;
+    padding: 12px 16px;
+  }
+  header h1 { margin: 0; font-size: 1.4rem; }
+  nav { margin-top:8px; }
+  nav a {
+    color: white; text-decoration:none; margin-right:12px;
+    font-size:0.9rem;
+  }
+  nav a.active { text-decoration:underline; }
+  main { padding:16px; }
+
+  /* Sections */
+  .page { display:none; }
+  .page.active { display:block; }
+
+  /* Product grid */
+  .grid { display:grid; gap:16px; }
+  @media(min-width:600px){ .grid { grid-template-columns: repeat(2,1fr); } }
+  @media(min-width:900px){ .grid { grid-template-columns: repeat(3,1fr); } }
+
+  .card {
+    background: var(--green-light); border-radius:8px; padding:12px;
+    display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .card img {
+    width:100%; height:150px; object-fit:cover; border-radius:6px;
+  }
+  .card h3 { margin:8px 0 4px; font-size:1.1rem; }
+  .card p { font-size:0.9rem; margin:4px 0; }
+  .card button {
+    background: var(--accent); border:none; color:white;
+    padding:8px; border-radius:4px; cursor:pointer; margin-top:8px;
+    font-size:0.9rem;
+  }
+  .card button:hover { background: #4f8f5a; }
+
+  /* Product detail */
+  .detail { max-width:700px; margin:auto; }
+  .detail img { width:100%; max-height:350px; object-fit:cover; border-radius:8px; }
+  .detail h2 { margin-top:16px; }
+  .detail p { margin:8px 0; font-size:0.95rem; }
+
+  /* Cart */
+  table { width:100%; border-collapse:collapse; }
+  th, td { padding:8px; text-align:left; border-bottom:1px solid #ddd; }
+  .cart-total { text-align:right; margin-top:12px; font-weight:bold; }
+
+  /* Forms */
+  input[type="number"], input[type="text"] {
+    padding:6px; width:100%; max-width:150px; border:1px solid #ccc;
+    border-radius:4px; margin-top:4px;
+  }
+  .btn {
+    background: var(--accent); border:none; color:white;
+    padding:10px 16px; border-radius:6px; cursor:pointer; font-size:0.95rem;
+  }
+  .btn:hover { background:#4f8f5a; }
+
+  /* Footer */
+  footer p { margin:0; font-size:0.85rem; }
+
+  /* Order steps */
+  .steps { list-style:none; padding-left:0; display:flex; flex-wrap:wrap; gap:8px;}
+  .steps li {
+    background:#eee; padding:6px 10px; border-radius:4px; font-size:0.85rem;
+  }
+  .steps li.active { background: var(--accent); color:white; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>IntanFarm</h1>
+  <nav>
+    <a href="#" data-page="home" class="active">Home</a>
+    <a href="#" data-page="shop">Shop</a>
+    <a href="#" data-page="cart">Keranjang</a>
+    <a href="#" data-page="order">Order</a>
+    <a href="#" data-page="contact">Kontak</a>
+  </nav>
+</header>
+
+<main>
+  <!-- Home page -->
+  <section id="home" class="page active">
+    <h2>Selamat datang di IntanFarm</h2>
+    <p>Toko online produk pertanian. Semua kalangan bisa pesan, dengan proses sederhana dan perhitungan ongkir & pembayaran otomatis.</p>
+    <p>Produk unggulan kami:</p>
+    <ul>
+      <li>Cabai rawit kering</li>
+      <li>Bawang putih / garlic</li>
+      <li>Vanili kering asli</li>
+      <li>Bibit jamur tiram</li>
+      <li>Saffron</li>
+    </ul>
+    <button class="btn" onclick="navigateTo('shop')">Lihat Produk</button>
+  </section>
+
+  <!-- Shop page -->
+  <section id="shop" class="page">
+    <h2>Shop</h2>
+    <div id="product-grid" class="grid"></div>
+  </section>
+
+  <!-- Product detail page -->
+  <section id="detail" class="page">
+    <div class="detail">
+      <img id="detail-img" src="" alt="Product Image">
+      <h2 id="detail-name"></h2>
+      <p id="detail-desc"></p>
+      <p><strong>Harga:</strong> <span id="detail-price"></span></p>
+      <label>Jumlah:</label>
+      <input type="number" id="detail-qty" value="1" min="1">
+      <button class="btn" onclick="addToCart()">Tambah ke Keranjang</button>
+      <button class="btn" style="background:#888;margin-left:8px;" onclick="navigateTo('shop')">Kembali</button>
+    </div>
+  </section>
+
+  <!-- Cart page -->
+  <section id="cart" class="page">
+    <h2>Keranjang Belanja</h2>
+    <div id="cart-content"></div>
+  </section>
+
+  <!-- Order page -->
+  <section id="order" class="page">
+    <h2>Order & Checkout</h2>
+
+    <div id="order-steps">
+      <ul class="steps">
+        <li class="active" id="step-1">1. Review Keranjang</li>
+        <li id="step-2">2. Ongkir dan Data Pembeli</li>
+        <li id="step-3">3. Konfirmasi & WA / Dummy</li>
+      </ul>
+    </div>
+
+    <div id="order-stage-1" class="order-stage">
+      <!-- Will reuse cart -->
+      <div id="order-cart"></div>
+      <button class="btn" onclick="goToStep(2)">Lanjut ke Ongkir & Data</button>
+    </div>
+
+    <div id="order-stage-2" class="order-stage" style="display:none;">
+      <h3>Perhitungan Ongkir & Total</h3>
+      <label>Masukkan ongkir (Rp):</label>
+      <input type="number" id="input-ongkir" value="0" min="0">
+      <br><br>
+      <label>Nama pembeli:</label><br>
+      <input type="text" id="buyer-name" placeholder="Nama lengkap" style="max-width:300px;">
+      <br><br>
+      <label>Alamat / catatan:</label><br>
+      <input type="text" id="buyer-address" placeholder="Alamat atau catatan" style="max-width:300px;">
+      <br><br>
+      <button class="btn" onclick="calculateTotal()">Hitung Total</button>
+      <button class="btn" style="background:#888;margin-left:8px;" onclick="goToStep(1)">Kembali</button>
+      <div id="calc-result" style="margin-top:16px;"></div>
+    </div>
+
+    <div id="order-stage-3" class="order-stage" style="display:none;">
+      <h3>Konfirmasi Order</h3>
+      <div id="confirm-details"></div>
+      <br>
+      <button class="btn" onclick="sendWA()">Checkout via WhatsApp</button>
+      <button class="btn" style="background:#888;margin-left:8px;" onclick="dummyOrder()">Dummy Checkout</button>
+      <button class="btn" style="background:#888;margin-left:8px;" onclick="goToStep(2)">Kembali</button>
+    </div>
+  </section>
+
+  <!-- Contact / WA -->
+  <section id="contact" class="page">
+    <h2>Kontak</h2>
+    <p>Pesan atau tanya‑tanya:</p>
+    <p>WhatsApp: <a href="https://wa.me/6281903562442" target="_blank">0819-0356-2442</a></p>
+    <p>Atau pakai tombol checkout di halaman Order.</p>
+  </section>
+</main>
+
+<footer>
+  <p>&copy; 2026 IntanFarm. Semua hak cipta dilindungi.</p>
+</footer>
+
+<script>
+  // ------- DATA PRODUK -------
+  const products = [
+    {
+      id:1,
+      name:'Cabai Rawit Kering',
+      desc:'Cabai rawit kering berkualitas, cocok untuk bumbu sambal dan masakan pedas.',
+      price: 25000,
+      img:'https://via.placeholder.com/400x300?text=Cabai+Rawit+Kering'
+    },
+    {
+      id:2,
+      name:'Garlic / Bawang Putih',
+      desc:'Bawang putih segar, aroma kuat, ideal untuk berbagai hidangan.',
+      price: 18000,
+      img:'https://via.placeholder.com/400x300?text=Garlic'
+    },
+    {
+      id:3,
+      name:'Vanili Kering Asli',
+      desc:'Vanili asli premium, memberikan aroma dan rasa khas pada kue dan minuman.',
+      price: 80000,
+      img:'https://via.placeholder.com/400x300?text=Vanili+Kering+Asli'
+    },
+    {
+      id:4,
+      name:'Bibit Jamur Tiram',
+      desc:'Bibit jamur tiram siap tanam, cocok untuk budidaya skala kecil.',
+      price: 35000,
+      img:'https://via.placeholder.com/400x300?text=Bibit+Jamur+Tiram'
+    },
+    {
+      id:5,
+      name:'Saffron',
+      desc:'Saffron premium untuk masakan dan minuman eksklusif.',
+      price: 150000,
+      img:'https://via.placeholder.com/400x300?text=Saffron'
+    },
+  ];
+
+  // ------- STATE -------
+  let currentPage = 'home';
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  // ------- NAVIGATION -------
+  function navigateTo(page) {
+    currentPage = page;
+    document.querySelectorAll('.page').forEach(sec=>{
+      sec.classList.remove('active');
+    });
+    document.getElementById(page).classList.add('active');
+    // set active nav link
+    document.querySelectorAll('nav a').forEach(a=>{
+      a.classList.remove('active');
+      if(a.dataset.page===page) a.classList.add('active');
+    });
+    if(page==='shop') renderShop();
+    if(page==='cart') renderCart();
+    if(page==='order') { renderOrderStage1(); }
+  }
+
+  // ------- SHOP -------
+  function renderShop() {
+    const grid = document.getElementById('product-grid');
+    grid.innerHTML='';
+    products.forEach(p=>{
+      const card = document.createElement('div');
+      card.className='card';
+      card.innerHTML = `
+        <img src="${p.img}" alt="${p.name}">
+        <h3>${p.name}</h3>
+        <p>Rp ${p.price.toLocaleString()}</p>
+        <button onclick="viewDetail(${p.id})">Lihat Detail</button>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function viewDetail(id) {
+    const p = products.find(x=>x.id===id);
+    if(!p) return;
+    document.getElementById('detail-img').src=p.img;
+    document.getElementById('detail-name').textContent=p.name;
+    document.getElementById('detail-desc').textContent=p.desc;
+    document.getElementById('detail-price').textContent='Rp '+p.price.toLocaleString();
+    document.getElementById('detail-qty').value=1;
+    // store current product id temporarily
+    window.currentProductId = id;
+    navigateTo('detail');
+  }
+
+  // ------- CART -------
+  function addToCart() {
+    const qty = parseInt(document.getElementById('detail-qty').value) || 1;
+    const id = window.currentProductId;
+    const existing = cart.find(x=>x.id===id);
+    if(existing) existing.qty += qty;
+    else cart.push({id, qty});
+    localStorage.setItem('cart', JSON.stringify(cart));
+    alert('Produk ditambahkan ke keranjang.');
+    navigateTo('shop');
+  }
+
+  function renderCart() {
+    const container = document.getElementById('cart-content');
+    if(cart.length===0) {
+      container.innerHTML='<p>Keranjang kosong.</p>';
+      return;
+    }
+    let html = '<table><thead><tr><th>Produk</th><th>Qty</th><th>Harga</th><th>Subtotal</th><th>Aksi</th></tr></thead><tbody>';
+    let total=0;
+    cart.forEach(item=>{
+      const p = products.find(x=>x.id===item.id);
+      const subtotal = p.price * item.qty;
+      total+= subtotal;
+      html += `<tr>
+        <td>${p.name}</td>
+        <td>${item.qty}</td>
+        <td>Rp ${p.price.toLocaleString()}</td>
+        <td>Rp ${subtotal.toLocaleString()}</td>
+        <td><button onclick="removeFromCart(${item.id})">Hapus</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    html += `<p class="cart-total">Total: Rp ${total.toLocaleString()}</p>`;
+    html += `<button class="btn" onclick="navigateTo('order')">Lanjut ke Order</button>`;
+    container.innerHTML=html;
+  }
+
+  function removeFromCart(id) {
+    cart = cart.filter(x=>x.id!==id);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    renderCart();
+  }
+
+  // ------- ORDER PROCESS -------
+  function renderOrderStage1() {
+    document.getElementById('order-stage-1').style.display='block';
+    document.getElementById('order-stage-2').style.display='none';
+    document.getElementById('order-stage-3').style.display='none';
+    setActiveStep(1);
+    // copy cart to order-cart
+    document.getElementById('order-cart').innerHTML=document.getElementById('cart-content').innerHTML;
+  }
+
+  function goToStep(step) {
+    document.getElementById('order-stage-1').style.display = step===1?'block':'none';
+    document.getElementById('order-stage-2').style.display = step===2?'block':'none';
+    document.getElementById('order-stage-3').style.display = step===3?'block':'none';
+    setActiveStep(step);
+  }
+
+  function setActiveStep(step) {
+    for(let i=1;i<=3;i++){
+      document.getElementById('step-'+i).classList.toggle('active', i===step);
+    }
+  }
+
+  function calculateTotal() {
+    const ongkir = parseInt(document.getElementById('input-ongkir').value) || 0;
+    const name = document.getElementById('buyer-name').value.trim();
+    const addr = document.getElementById('buyer-address').value.trim();
+    // calculate cart total
+    let total=0;
+    cart.forEach(item=>{
+      const p = products.find(x=>x.id===item.id);
+      total += p.price * item.qty;
+    });
+    const grand = total + ongkir;
+    document.getElementById('calc-result').innerHTML = `
+      <p>Total produk: Rp ${total.toLocaleString()}</p>
+      <p>Ongkir: Rp ${ongkir.toLocaleString()}</p>
+      <p><strong>Total bayar: Rp ${grand.toLocaleString()}</strong></p>
+    `;
+    // store for confirmation
+    window.orderSummary = {total, ongkir, grand, name, addr};
+    goToStep(3);
+  }
+
+  function sendWA() {
+    // prepare message
+    let msg = `Order IntanFarm:%0A`;
+    cart.forEach(item=>{
+      const p = products.find(x=>x.id===item.id);
+      msg += `- ${p.name} x${item.qty} = Rp ${(p.price*item.qty).toLocaleString()}%0A`;
+    });
+    msg += `Ongkir: Rp ${window.orderSummary.ongkir.toLocaleString()}%0A`;
+    msg += `Total bayar: Rp ${window.orderSummary.grand.toLocaleString()}%0A`;
+    msg += `Nama: ${window.orderSummary.name}%0A`;
+    msg += `Alamat/catatan: ${window.orderSummary.addr}`;
+    const waLink = `https://wa.me/6281903562442?text=${msg}`;
+    window.open(waLink, '_blank');
+  }
+
+  function dummyOrder() {
+    alert('Dummy checkout berhasil. Data order disimpan sementara.');
+    // clear cart for demo
+    cart = [];
+    localStorage.setItem('cart', JSON.stringify(cart));
+    goToStep(1);
+    renderCart();
+  }
+
+  // show confirmation details when step 3 loads
+  document.getElementById('order-stage-3').addEventListener('DOMNodeInserted', ()=>{
+    if(window.orderSummary){
+      const info = `
+        <p><strong>Nama:</strong> ${window.orderSummary.name}</p>
+        <p><strong>Alamat/catatan:</strong> ${window.orderSummary.addr}</p>
+        <p><strong>Total bayar:</strong> Rp ${window.orderSummary.grand.toLocaleString()}</p>
+      `;
+      document.getElementById('confirm-details').innerHTML = info;
+    }
+  });
+  
+  // init
+  renderShop();
+</script>
+
+</body>
+</html>
